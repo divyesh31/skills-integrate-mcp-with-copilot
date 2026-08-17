@@ -5,19 +5,92 @@ A super simple FastAPI application that allows students to view and sign up
 for extracurricular activities at Mergington High School.
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.middleware.sessions import SessionMiddleware
 import os
 from pathlib import Path
+from pydantic import BaseModel
 
 app = FastAPI(title="Mergington High School API",
               description="API for viewing and signing up for extracurricular activities")
+
+# Add session middleware for secure session management
+app.add_middleware(SessionMiddleware, secret_key="your-secret-key-change-this-in-production")
 
 # Mount the static files directory
 current_dir = Path(__file__).parent
 app.mount("/static", StaticFiles(directory=os.path.join(Path(__file__).parent,
           "static")), name="static")
+
+# In-memory user database (simple for now, to be replaced with persistent DB in issue #14)
+users = {
+    "admin": {"password": "admin123", "role": "administrator"},
+    "teacher": {"password": "teacher123", "role": "faculty"},
+    "student": {"password": "student123", "role": "student"}
+}
+
+# Pydantic model for login
+class LoginRequest(BaseModel):
+    uid: str
+    password: str
+
+
+def is_authenticated(request: Request) -> bool:
+    """Check if user is logged in"""
+    return "uid" in request.session
+
+
+def get_user_role(request: Request) -> str:
+    """Get the role of the logged-in user"""
+    if is_authenticated(request):
+        uid = request.session.get("uid")
+        return users[uid].get("role", "student")
+    return None
+
+
+@app.post("/login")
+def login(request: Request, credentials: LoginRequest):
+    """Login endpoint - validates credentials and creates session"""
+    uid = credentials.uid
+    password = credentials.password
+    
+    # Validate user exists and password is correct
+    if uid not in users or users[uid]["password"] != password:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid username or password"
+        )
+    
+    # Create session
+    request.session["uid"] = uid
+    request.session["role"] = users[uid]["role"]
+    
+    return {
+        "message": "Login successful",
+        "user": uid,
+        "role": users[uid]["role"]
+    }
+
+
+@app.post("/logout")
+def logout(request: Request):
+    """Logout endpoint - clears session"""
+    request.session.clear()
+    return {"message": "Logout successful"}
+
+
+@app.get("/auth/status")
+def auth_status(request: Request):
+    """Check current authentication status"""
+    if is_authenticated(request):
+        return {
+            "authenticated": True,
+            "user": request.session.get("uid"),
+            "role": request.session.get("role")
+        }
+    return {"authenticated": False}
 
 # In-memory activity database
 activities = {
@@ -89,8 +162,12 @@ def get_activities():
 
 
 @app.post("/activities/{activity_name}/signup")
-def signup_for_activity(activity_name: str, email: str):
-    """Sign up a student for an activity"""
+def signup_for_activity(request: Request, activity_name: str, email: str):
+    """Sign up a student for an activity (requires authentication)"""
+    # Check authentication
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
     # Validate activity exists
     if activity_name not in activities:
         raise HTTPException(status_code=404, detail="Activity not found")
@@ -111,8 +188,12 @@ def signup_for_activity(activity_name: str, email: str):
 
 
 @app.delete("/activities/{activity_name}/unregister")
-def unregister_from_activity(activity_name: str, email: str):
-    """Unregister a student from an activity"""
+def unregister_from_activity(request: Request, activity_name: str, email: str):
+    """Unregister a student from an activity (requires authentication)"""
+    # Check authentication
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
     # Validate activity exists
     if activity_name not in activities:
         raise HTTPException(status_code=404, detail="Activity not found")
