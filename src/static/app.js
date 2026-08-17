@@ -1,8 +1,110 @@
 document.addEventListener("DOMContentLoaded", () => {
+  const loginContainer = document.getElementById("login-container");
+  const activitiesSection = document.getElementById("activities-section");
+  const loginForm = document.getElementById("login-form");
+  const logoutBtn = document.getElementById("logout-btn");
+  const userInfo = document.getElementById("user-info");
+  const userGreeting = document.getElementById("user-greeting");
+  const loginMessage = document.getElementById("login-message");
+
   const activitiesList = document.getElementById("activities-list");
   const activitySelect = document.getElementById("activity");
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
+
+  // Check authentication status on page load
+  async function checkAuthStatus() {
+    try {
+      const response = await fetch("/auth/status");
+      const data = await response.json();
+
+      if (data.authenticated) {
+        // User is logged in
+        showActivitiesView(data.user, data.role);
+      } else {
+        // User is not logged in
+        showLoginView();
+      }
+    } catch (error) {
+      console.error("Error checking auth status:", error);
+      showLoginView();
+    }
+  }
+
+  function showLoginView() {
+    loginContainer.classList.remove("hidden");
+    activitiesSection.classList.add("hidden");
+    userInfo.classList.add("hidden");
+  }
+
+  function showActivitiesView(user, role) {
+    loginContainer.classList.add("hidden");
+    activitiesSection.classList.remove("hidden");
+    userInfo.classList.remove("hidden");
+    userGreeting.textContent = `Welcome, ${user} (${role})`;
+    fetchActivities();
+  }
+
+  // Handle login form submission
+  loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const uid = document.getElementById("uid").value;
+    const password = document.getElementById("password").value;
+
+    try {
+      const response = await fetch("/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ uid, password }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        loginMessage.textContent = result.message;
+        loginMessage.className = "success";
+        loginMessage.classList.remove("hidden");
+
+        // Clear form
+        loginForm.reset();
+
+        // Show activities view after short delay
+        setTimeout(() => {
+          showActivitiesView(result.user, result.role);
+        }, 500);
+      } else {
+        loginMessage.textContent = result.detail || "Login failed";
+        loginMessage.className = "error";
+        loginMessage.classList.remove("hidden");
+      }
+    } catch (error) {
+      loginMessage.textContent = "Login failed. Please try again.";
+      loginMessage.className = "error";
+      loginMessage.classList.remove("hidden");
+      console.error("Error logging in:", error);
+    }
+  });
+
+  // Handle logout
+  logoutBtn.addEventListener("click", async () => {
+    try {
+      const response = await fetch("/logout", {
+        method: "POST",
+      });
+
+      if (response.ok) {
+        // Clear session and show login view
+        showLoginView();
+        loginForm.reset();
+        loginMessage.classList.add("hidden");
+      }
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  });
 
   // Function to fetch activities from API
   async function fetchActivities() {
@@ -155,6 +257,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Initialize app
-  fetchActivities();
+  // Initialize app by checking auth status
+  checkAuthStatus();
 });

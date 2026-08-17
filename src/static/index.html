@@ -10,34 +10,66 @@
     <header>
       <h1>Mergington High School</h1>
       <h2>Extracurricular Activities</h2>
+      <div id="user-info" class="user-info hidden">
+        <span id="user-greeting"></span>
+        <button id="logout-btn" class="logout-btn">Logout</button>
+      </div>
     </header>
 
     <main>
-      <section id="activities-container">
-        <h3>Available Activities</h3>
-        <div id="activities-list">
-          <!-- Activities will be loaded here -->
-          <p>Loading activities...</p>
+      <!-- Login Section -->
+      <section id="login-container" class="login-container">
+        <h3>Login</h3>
+        <form id="login-form">
+          <div class="form-group">
+            <label for="uid">User ID:</label>
+            <input type="text" id="uid" name="uid" required placeholder="Enter your user ID" />
+          </div>
+          <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required placeholder="Enter your password" />
+          </div>
+          <button type="submit" class="login-btn">Login</button>
+        </form>
+        <div id="login-message" class="message hidden"></div>
+        <div class="demo-info">
+          <p><strong>Demo Credentials:</strong></p>
+          <ul>
+            <li>UID: <code>admin</code>, Password: <code>admin123</code></li>
+            <li>UID: <code>teacher</code>, Password: <code>teacher123</code></li>
+            <li>UID: <code>student</code>, Password: <code>student123</code></li>
+          </ul>
         </div>
       </section>
 
-      <section id="signup-container">
-        <h3>Sign Up for an Activity</h3>
-        <form id="signup-form">
-          <div class="form-group">
-            <label for="email">Student Email:</label>
-            <input type="email" id="email" required placeholder="your-email@mergington.edu" />
+      <!-- Activities Section (hidden until logged in) -->
+      <section id="activities-section" class="hidden">
+        <section id="activities-container">
+          <h3>Available Activities</h3>
+          <div id="activities-list">
+            <!-- Activities will be loaded here -->
+            <p>Loading activities...</p>
           </div>
-          <div class="form-group">
-            <label for="activity">Select Activity:</label>
-            <select id="activity" required>
-              <option value="">-- Select an activity --</option>
-              <!-- Activity options will be loaded here -->
-            </select>
-          </div>
-          <button type="submit">Sign Up</button>
-        </form>
-        <div id="message" class="hidden"></div>
+        </section>
+
+        <section id="signup-container">
+          <h3>Sign Up for an Activity</h3>
+          <form id="signup-form">
+            <div class="form-group">
+              <label for="email">Student Email:</label>
+              <input type="email" id="email" required placeholder="your-email@mergington.edu" />
+            </div>
+            <div class="form-group">
+              <label for="activity">Select Activity:</label>
+              <select id="activity" required>
+                <option value="">-- Select an activity --</option>
+                <!-- Activity options will be loaded here -->
+              </select>
+            </div>
+            <button type="submit">Sign Up</button>
+          </form>
+          <div id="message" class="hidden"></div>
+        </section>
       </section>
     </main>
 
